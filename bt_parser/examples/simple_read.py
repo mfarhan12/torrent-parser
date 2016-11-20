@@ -11,13 +11,15 @@ bt_parse = TorrentParser(torrent_name)
 
 # get URL
 url_name = bt_parse.get_url()
+print url_name
 
 # get creation date
 creation_date = bt_parse.get_creation_date()
-
+print creation_date
 # get creator's name'
 creator_name = bt_parse.get_creator_name()
 
+print creator_name
 # get all the files in the torrent
 torrent_files = bt_parse.get_files()
 
