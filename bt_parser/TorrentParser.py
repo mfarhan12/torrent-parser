@@ -2,6 +2,10 @@
 from datetime import datetime
 from StringIO import StringIO
 
+INT_BEGIN = 'i'
+DICT_BEGIN = 'd'
+LIST_BEGIN = 'l'
+ITEM_END = 'e'
 class NoFileException(Exception):
     """
     Class used as an exception to be  raised when an error occurs
@@ -14,7 +18,7 @@ class TorrentParser(object):
     Object that is used to parse torrent files
 
     Can be initialized with bit torrent file name, or passed to open_file.
-    This class uses protocols defined by the Bittorrent Protocol Specification v1.0 
+    This class uses protocols defined by the Bittorrent Protocol Specification v1.0
     (https://wiki.theory.org/BitTorrentSpecification)
 
     """
@@ -46,7 +50,7 @@ class TorrentParser(object):
                 "Cannot open file, make sure to include directory in file name")
         self._parse_torrent()
         self._file_name = file_name
-        print self._info_dict
+
 
     def get_url(self):
         """
