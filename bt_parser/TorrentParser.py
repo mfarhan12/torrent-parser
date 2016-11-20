@@ -2,10 +2,12 @@
 from datetime import datetime
 from StringIO import StringIO
 
+# constants set by the Bittorent Protocol Specificationss v1.0
 INT_BEGIN = 'i'
 DICT_BEGIN = 'd'
 LIST_BEGIN = 'l'
 ITEM_END = 'e'
+SIZE_END = ':'
 class NoFileException(Exception):
     """
     Class used as an exception to be  raised when an error occurs
@@ -134,7 +136,7 @@ class TorrentParser(object):
                 "No file given, use the open_file method to open a torrent file.")
         files_dict = {}
         raw_files_dict = self._info_dict['info']
-
+  
         # read if multiple files
         if 'files' in raw_files_dict:
             for f in raw_files_dict['files']:
@@ -208,22 +210,22 @@ class TorrentParser(object):
                 return None
 
             # begin parsing dict, if next item is a dict
-            if char == 'd':
+            if char == DICT_BEGIN:
                 return self._decode_dict()
 
             # begin parsing int, if next item is an int
-            if char == 'i':
+            if char == INT_BEGIN:
                 return self._decode_integer()
 
             # return e to indicate an end to the current item being parsed
-            if char == 'e':
-                return 'e'
+            if char == ITEM_END:
+                return ITEM_END
             # begin parsing list
-            if char == 'l':
+            if char == LIST_BEGIN:
                 return self._decode_list()
 
             # colon indicates the current item has ended
-            elif char == ':':
+            elif char == SIZE_END:
                 break
 
             else:
@@ -239,7 +241,7 @@ class TorrentParser(object):
             char = self._pop_raw_string()
 
             # if e is reached, integer has ended, return the integer value
-            if char == 'e':
+            if char == ITEM_END:
                 return int(val_char)
             else:
                 val_char += char
@@ -251,7 +253,7 @@ class TorrentParser(object):
             key = self._read_next_item()
 
             # reached end of dict
-            if key is None or key == 'e':
+            if key is None or key == ITEM_END:
                 return original_dict
 
             val = self._read_next_item()
@@ -267,7 +269,7 @@ class TorrentParser(object):
             item = self._read_next_item()
 
             # reached end of file, or end of dict
-            if item is None or item == 'e':
+            if item is None or item == ITEM_END:
                 return original_list
 
             original_list.append(item)
