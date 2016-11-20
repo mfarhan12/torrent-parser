@@ -1,18 +1,25 @@
 
+from datetime import datetime
 from StringIO import StringIO
+
+class TorrentParserException(Exception):
+    """
+    Class used as an exception to be  raised when an error occurs
+    """
+    pass
 
 class TorrentParser(object):
     """
     Object that is used to parse torrent files
 
-    Can be initialized with bit torrent file name, or passed to open_file
+    Can be initialized with bit torrent file name, or passed to open_file.
     This class uses protocols defined by the Bittorrent Protocol Specification v1.0 
     (https://wiki.theory.org/BitTorrentSpecification)
 
     """
     _info_dict = {}
     _raw_binary = []
-
+    _file_name = None
     def __init__(self, file_name=None):
 
         if file_name is None:
@@ -28,13 +35,46 @@ class TorrentParser(object):
         :type cmd: str
         :returns: None
         """
-        self._file_name = file_name
-        # read out the initial 'd' char
-        with open(self._file_name, 'rb') as torrent_file:
-            self._raw_binary = StringIO(torrent_file.read()).getvalue()
 
+        # read out the initial 'd' char
+        try:
+            with open(file_name, 'rb') as torrent_file:
+                self._raw_binary = StringIO(torrent_file.read()).getvalue()
+        except IOError:
+            raise TorrentParserException(
+                "Cannot open file, make sure to include directory in file name")
         self._parse_torrent()
+        self._file_name = file_name
         print self._info_dict
+
+    def get_url(self):
+        """
+        Return the url of the current bit torrent file
+
+        :returns: URL string
+        """
+        # if no file is open, or info dict has not been parsed
+        if self._file_name is None or self._info_dict == {}:
+            raise TorrentParserException(
+                "No file given, use the open_file method to open a torrent file.")
+        return self._info_dict['announce']
+
+    def get_creation_date(self):
+        """
+        Return the creation date of the current bit torrent file
+
+        :returns: datetime object containing the time of the created file
+        """
+        # if no file is open, or info dict has not been parsed
+        if self._file_name is None or self._info_dict == {}:
+            raise TorrentParserException(
+                "No file given, use the open_file method to open a torrent file.")
+
+        if 'creation date' not in self._info_dict:
+            raise TorrentParserException("Torrent file did not contain creation date.")
+
+        unix_time = self._info_dict['creation date']
+        return datetime.utcfromtimestamp(unix_time)
 
     def _parse_torrent(self):
 
