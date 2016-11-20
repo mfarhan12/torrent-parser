@@ -8,11 +8,6 @@ class NoFileException(Exception):
     """
     pass
 
-class FieldNAException(Exception):
-    """
-    Class used as an exception to indicate the requested field is not available
-    """
-    pass
 
 class TorrentParser(object):
     """
@@ -68,21 +63,97 @@ class TorrentParser(object):
     def get_creation_date(self):
         """
         Return the creation date of the current bit torrent file
+        Note the creation date is optional, and if the creation date is not available in the
+        torrent file, None will be returned
 
         :returns: datetime object containing the time of the created file
         """
         # if no file is open, or info dict has not been parsed
-        if self._file_name is None or self._info_dict == {}:
+        if self._file_name is None:
             raise NoFileException(
                 "No file given, use the open_file method to open a torrent file.")
 
         if 'creation date' not in self._info_dict:
-            raise FieldNAException("Torrent Field creation date not available in file.")
+            return None
 
         unix_time = self._info_dict['creation date']
         return datetime.utcfromtimestamp(unix_time)
 
+    def get_creator_name(self):
+        """
+        Return the name of torrent file's creater
+        Note created by field is optional, and if not available torrent file,
+        None will be returned
+        :returns: string containing the creator's name
+        """
+        # if no file is open, or info dict has not been parsed
+        if self._file_name is None:
+            raise NoFileException(
+                "No file given, use the open_file method to open a torrent file.")
 
+        if 'created by' not in self._info_dict:
+            return None
+
+        return self._info_dict['created by']
+
+    def get_files(self):
+        """
+        Returns a dictionary where the key is the name of the file, and the value is
+        a second dict containing the files parameters
+        file_dict = {'file1': {'size':x,
+                              'checksum': y}
+
+                     'file2': {'size':x,
+                                'checksum': y}
+                     ...
+
+                     'fileN': {'size':x,
+                                'checksum': y}
+
+                    }
+        Note that the checksum is optional, so it will have a value of None if Not Implemented
+        :returns: dict containing the file, and their corresponding attributes
+        """
+        # if no file is open, or info dict has not been parsed
+        if self._file_name is None:
+            raise NoFileException(
+                "No file given, use the open_file method to open a torrent file.")
+        files_dict = {}
+        raw_files_dict = self._info_dict['info']
+
+        # read if multiple files
+        if 'files' in raw_files_dict:
+            for f in raw_files_dict['files']:
+
+                file_size = f['length']
+
+                # combine the file name with directory if the file is in a directory
+                file_name = '/'.join(f['path'])
+
+                # check for md5sum, note other files may have md5, but for now we will
+                # folllow the standard set by Bittorrent Protocol Specification v1.0.0
+                if 'md5sum' in f:
+                    check_sum = f['md5sum']
+                else:
+                    check_sum = None
+                # add file name to dict
+                files_dict[file_name] = {'size': file_size,
+                                         'checksum': check_sum}
+
+        # if the torrent only has 1 file, retrieve data for 1 file
+        else:
+            file_size = raw_files_dict['length']
+
+            file_name = raw_files_dict['name']
+
+            # md5sum is an optional paramater
+            if 'md5sum' in raw_files_dict:
+                check_sum = raw_files_dict['md5sum']
+            else:
+                check_sum = None
+        files_dict[file_name] = {'size': file_size,
+                                 'checksum': check_sum}
+        return files_dict
     def _parse_torrent(self):
 
         # remove the initial dictionary indicatory, and begin parsing info as dictionary
@@ -91,7 +162,7 @@ class TorrentParser(object):
             self._info_dict = self._decode_dict()
 
     def _pop_raw_string(self, num_pop=1):
-        
+
         # retrieve the value of the required string
         popped_string = self._raw_binary[:num_pop]
 
@@ -108,7 +179,7 @@ class TorrentParser(object):
             char = self._pop_raw_string()
 
             # return none if we reached end of file
-            if len(self._raw_binary) == 0:
+            if len(self._raw_binary) == 0 or char == '':
                 return None
 
             # begin parsing dict, if next item is a dict
@@ -132,8 +203,7 @@ class TorrentParser(object):
 
             else:
                 size_char += char
-        if size_char == '':
-            return None
+
         # return the item, if the item was a string
         return self._pop_raw_string(int(size_char))
 
@@ -161,11 +231,7 @@ class TorrentParser(object):
 
             val = self._read_next_item()
 
-            #TODO: REMOVE BEFORE RELEASE
-            if key == 'pieces':
-                original_dict[key] = 2
-            else:
-                original_dict[key] = val
+            original_dict[key] = val
 
         return original_dict
 
@@ -178,10 +244,6 @@ class TorrentParser(object):
             # reached end of file, or end of dict
             if item is None or item == 'e':
                 return original_list
-
-            if item == 'd':
-                original_list.append(self._decode_dict())
-                continue
 
             original_list.append(item)
         return original_list
