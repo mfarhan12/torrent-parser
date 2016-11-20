@@ -2,9 +2,15 @@
 from datetime import datetime
 from StringIO import StringIO
 
-class TorrentParserException(Exception):
+class NoFileException(Exception):
     """
     Class used as an exception to be  raised when an error occurs
+    """
+    pass
+
+class FieldNAException(Exception):
+    """
+    Class used as an exception to indicate the requested field is not available
     """
     pass
 
@@ -41,7 +47,7 @@ class TorrentParser(object):
             with open(file_name, 'rb') as torrent_file:
                 self._raw_binary = StringIO(torrent_file.read()).getvalue()
         except IOError:
-            raise TorrentParserException(
+            raise NoFileException(
                 "Cannot open file, make sure to include directory in file name")
         self._parse_torrent()
         self._file_name = file_name
@@ -55,7 +61,7 @@ class TorrentParser(object):
         """
         # if no file is open, or info dict has not been parsed
         if self._file_name is None or self._info_dict == {}:
-            raise TorrentParserException(
+            raise NoFileException(
                 "No file given, use the open_file method to open a torrent file.")
         return self._info_dict['announce']
 
@@ -67,14 +73,15 @@ class TorrentParser(object):
         """
         # if no file is open, or info dict has not been parsed
         if self._file_name is None or self._info_dict == {}:
-            raise TorrentParserException(
+            raise NoFileException(
                 "No file given, use the open_file method to open a torrent file.")
 
         if 'creation date' not in self._info_dict:
-            raise TorrentParserException("Torrent file did not contain creation date.")
+            raise FieldNAException("Torrent Field creation date not available in file.")
 
         unix_time = self._info_dict['creation date']
         return datetime.utcfromtimestamp(unix_time)
+
 
     def _parse_torrent(self):
 
