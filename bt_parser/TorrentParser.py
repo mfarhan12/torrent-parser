@@ -26,7 +26,15 @@ class TorrentParser(object):
     _raw_binary = []
     _file_name = None
     def __init__(self, file_name=None):
+        """
+        TOrrentParser Constructer
 
+
+        :param file_name (optional): string containing the file name.
+        note this should include the directory
+        :type cmd: str
+        :returns: None
+        """
         if file_name is None:
             return
         else:
@@ -36,6 +44,7 @@ class TorrentParser(object):
         """
         Open a bit torrent file, and parse the contents
 
+        Note: the file_name should include the current directory
         :param file_name: string containing the file name, note this should include the directory
         :type cmd: str
         :returns: None
@@ -88,7 +97,7 @@ class TorrentParser(object):
         Return the name of torrent file's creater
         Note created by field is optional, and if not available torrent file,
         None will be returned
-        :returns: string containing the creator's name
+        :returns: string containing the creator's name, or None if no name is in file
         """
         # if no file is open, or info dict has not been parsed
         if self._file_name is None:
@@ -103,7 +112,7 @@ class TorrentParser(object):
     def get_files(self):
         """
         Returns a dictionary where the key is the name of the file, and the value is
-        a second dict containing the files parameters
+        a dict containing the files parameters
         file_dict = {'file1': {'size':x,
                               'checksum': y}
 
@@ -116,6 +125,7 @@ class TorrentParser(object):
 
                     }
         Note that the checksum is optional, so it will have a value of None if Not Implemented
+        Note the size is in Bytes
         :returns: dict containing the file, and their corresponding attributes
         """
         # if no file is open, or info dict has not been parsed
@@ -138,6 +148,11 @@ class TorrentParser(object):
                 # folllow the standard set by Bittorrent Protocol Specification v1.0.0
                 if 'md5sum' in f:
                     check_sum = f['md5sum']
+
+                # some files have md5 listed, instead of md5sum
+                elif 'md5' in f:
+  
+                    check_sum = f['md5']
                 else:
                     check_sum = None
                 # add file name to dict
@@ -153,11 +168,17 @@ class TorrentParser(object):
             # md5sum is an optional paramater
             if 'md5sum' in raw_files_dict:
                 check_sum = raw_files_dict['md5sum']
+
+            # some files have md5 listed, instead of md5sum
+            elif 'md5' in raw_files_dict:
+                check_sum = raw_files_dict['md5']
+
             else:
                 check_sum = None
         files_dict[file_name] = {'size': file_size,
                                  'checksum': check_sum}
         return files_dict
+
     def _parse_torrent(self):
 
         # remove the initial dictionary indicatory, and begin parsing info as dictionary
